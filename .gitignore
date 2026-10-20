@@ -1,0 +1,27 @@
+# Entorno y secretos
+.env
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Herramientas
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
+/staticfiles/
+/media/
+
+# Editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.DS_Store
+
+# Claude Code (config personal)
+.claude/settings.local.json
+CLAUDE.local.md

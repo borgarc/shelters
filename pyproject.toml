@@ -1,0 +1,25 @@
+[project]
+name = "shelters"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "django>=6.1.2",
+    "djangorestframework>=3.18.3",
+    "gunicorn>=26.2.0",
+    "psycopg[binary]>=3.3.6",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.1",
+]
+
+[tool.ruff]
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+# Django uses mutable class attributes by design (Meta, admin, serializers)
+ignore = ["RUF012"]
+
+[tool.ruff.format]
+quote-style = "single"

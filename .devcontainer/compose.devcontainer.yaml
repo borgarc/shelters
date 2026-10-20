@@ -1,0 +1,4 @@
+services:
+  web:
+    # Keep the container alive; start the server manually or with the debugger
+    command: sleep infinity
