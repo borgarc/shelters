@@ -12,6 +12,13 @@ class Cat(models.Model):
     birth_date = models.DateField(null=True, blank=True)
     description = models.TextField(blank=True)
     is_adopted = models.BooleanField(default=False)
+    colony = models.ForeignKey(
+        'colonies.Colony',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cats',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
