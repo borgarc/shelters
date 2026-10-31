@@ -1,0 +1,11 @@
+#!/bin/sh
+# Runs the CI lint and migration checks before each commit (tests stay in CI)
+set -e
+
+checks='ruff check . && ruff format --check . && python manage.py makemigrations --check --dry-run'
+
+if [ -f /.dockerenv ]; then
+    sh -c "$checks"
+else
+    docker compose exec -T web sh -c "$checks"
+fi

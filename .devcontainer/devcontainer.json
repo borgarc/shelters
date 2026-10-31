@@ -13,7 +13,7 @@
     }
   },
   "forwardPorts": [8000, 5432],
-  "postCreateCommand": "uv sync --locked",
+  "postCreateCommand": "uv sync --locked && git config core.hooksPath .githooks",
   "customizations": {
     "vscode": {
       "extensions": [
