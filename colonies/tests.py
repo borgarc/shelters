@@ -20,7 +20,6 @@ class ColonyModelTests(TestCase):
 
     def test_defaults(self):
         self.assertTrue(self.colony.is_active)
-        self.assertEqual(self.colony.estimated_cat_count, 0)
         self.assertIsNone(self.colony.latitude)
         self.assertIsNone(self.colony.longitude)
 
@@ -37,6 +36,19 @@ class ColonyModelTests(TestCase):
 
         cat.refresh_from_db()
         self.assertIsNone(cat.colony)
+
+
+class ColonyQuerySetTests(TestCase):
+    def test_with_cat_count_counts_registered_cats(self):
+        colony = Colony.objects.create(name='A', address='B', city='C')
+        empty = Colony.objects.create(name='Z', address='B', city='C')
+        Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE, colony=colony)
+        Cat.objects.create(name='Tom', sex=Cat.Sex.MALE, colony=colony)
+        Cat.objects.create(name='Sin colonia', sex=Cat.Sex.MALE)
+
+        counts = {c.pk: c.cat_count for c in Colony.objects.with_cat_count()}
+
+        self.assertEqual(counts, {colony.pk: 2, empty.pk: 0})
 
 
 class ColonySerializerTests(TestCase):
@@ -56,14 +68,6 @@ class ColonySerializerTests(TestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn('latitude', serializer.errors)
 
-    def test_negative_estimated_cat_count(self):
-        serializer = ColonySerializer(
-            data={'name': 'A', 'address': 'B', 'city': 'C', 'estimated_cat_count': -1}
-        )
-
-        self.assertFalse(serializer.is_valid())
-        self.assertIn('estimated_cat_count', serializer.errors)
-
 
 class ColonyAPITests(APITestCase):
     def setUp(self):
@@ -82,6 +86,23 @@ class ColonyAPITests(APITestCase):
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['cat_count'], 1)
 
+    def test_list_query_count_does_not_grow_with_colonies(self):
+        for name in ['A', 'B', 'C']:
+            colony = Colony.objects.create(name=name, address='X', city='Y')
+            Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE, colony=colony)
+
+        # One query for the page count, one for the annotated page
+        with self.assertNumQueries(2):
+            self.client.get(self.list_url)
+
+    def test_retrieve_includes_cat_count(self):
+        Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE, colony=self.colony)
+        Cat.objects.create(name='Tom', sex=Cat.Sex.MALE, colony=self.colony)
+
+        response = self.client.get(self.detail_url)
+
+        self.assertEqual(response.data['cat_count'], 2)
+
     def test_create(self):
         response = self.client.post(
             self.list_url,
@@ -89,7 +110,6 @@ class ColonyAPITests(APITestCase):
                 'name': 'Puerto',
                 'address': 'Muelle 3',
                 'city': 'Bilbao',
-                'estimated_cat_count': 12,
             },
         )
 
@@ -137,80 +157,3 @@ class ColonyAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         cat.refresh_from_db()
         self.assertEqual(cat.colony, self.colony)
-
-
-class EstimatedCatCountSyncTests(TestCase):
-    def setUp(self):
-        self.colony = Colony.objects.create(
-            name='Parque Norte', address='Calle Mayor 1', city='Madrid'
-        )
-        self.other = Colony.objects.create(name='Puerto', address='X', city='Y')
-
-    def assertCount(self, colony, expected):
-        colony.refresh_from_db()
-        self.assertEqual(colony.estimated_cat_count, expected)
-
-    def test_creating_cat_in_colony_increments(self):
-        Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE, colony=self.colony)
-
-        self.assertCount(self.colony, 1)
-
-    def test_creating_cat_without_colony_changes_nothing(self):
-        Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE)
-
-        self.assertCount(self.colony, 0)
-
-    def test_assigning_cat_increments(self):
-        cat = Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE)
-
-        cat.colony = self.colony
-        cat.save()
-
-        self.assertCount(self.colony, 1)
-
-    def test_removing_cat_from_colony_decrements(self):
-        cat = Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE, colony=self.colony)
-
-        cat.colony = None
-        cat.save()
-
-        self.assertCount(self.colony, 0)
-
-    def test_moving_cat_updates_both_colonies(self):
-        cat = Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE, colony=self.colony)
-
-        cat.colony = self.other
-        cat.save()
-
-        self.assertCount(self.colony, 0)
-        self.assertCount(self.other, 1)
-
-    def test_saving_without_colony_change_keeps_count(self):
-        cat = Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE, colony=self.colony)
-
-        cat.name = 'Misifú'
-        cat.save()
-
-        self.assertCount(self.colony, 1)
-
-    def test_deleting_cat_decrements(self):
-        cat = Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE, colony=self.colony)
-
-        cat.delete()
-
-        self.assertCount(self.colony, 0)
-
-    def test_count_never_goes_below_zero(self):
-        cat = Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE, colony=self.colony)
-        Colony.objects.filter(pk=self.colony.pk).update(estimated_cat_count=0)
-
-        cat.delete()
-
-        self.assertCount(self.colony, 0)
-
-    def test_estimate_keeps_unregistered_cats(self):
-        Colony.objects.filter(pk=self.colony.pk).update(estimated_cat_count=10)
-
-        Cat.objects.create(name='Misi', sex=Cat.Sex.FEMALE, colony=self.colony)
-
-        self.assertCount(self.colony, 11)

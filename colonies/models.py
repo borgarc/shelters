@@ -2,6 +2,11 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
+class ColonyQuerySet(models.QuerySet):
+    def with_cat_count(self):
+        return self.annotate(cat_count=models.Count('cats'))
+
+
 class Colony(models.Model):
     name = models.CharField(max_length=100)
     address = models.CharField(max_length=255)
@@ -21,14 +26,14 @@ class Colony(models.Model):
         blank=True,
         validators=[MinValueValidator(-180), MaxValueValidator(180)],
     )
-    # Includes cats not yet registered in the system
-    estimated_cat_count = models.PositiveIntegerField(default=0)
     caretaker_name = models.CharField(max_length=100, blank=True)
     caretaker_phone = models.CharField(max_length=20, blank=True)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = ColonyQuerySet.as_manager()
 
     class Meta:
         ordering = ['name']

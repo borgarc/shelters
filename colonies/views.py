@@ -1,4 +1,3 @@
-from django.db.models import Count
 from rest_framework import viewsets
 from rest_framework.decorators import action
 
@@ -9,7 +8,7 @@ from .serializers import ColonySerializer
 
 
 class ColonyViewSet(viewsets.ModelViewSet):
-    queryset = Colony.objects.annotate(num_cats=Count('cats'))
+    queryset = Colony.objects.with_cat_count()
     serializer_class = ColonySerializer
 
     @action(detail=True)
