@@ -13,7 +13,7 @@ class CatInline(admin.TabularInline):
 
 @admin.register(Colony)
 class ColonyAdmin(admin.ModelAdmin):
-    list_display = ['name', 'city', 'estimated_cat_count', 'is_active', 'created_at']
+    list_display = ['name', 'city', 'is_active', 'created_at']
     list_filter = ['is_active', 'city']
     search_fields = ['name', 'address', 'city', 'caretaker_name']
     inlines = [CatInline]

@@ -13,6 +13,6 @@ class ColonySerializer(serializers.ModelSerializer):
 
     def get_cat_count(self, obj):
         # Use the queryset annotation when available to avoid an extra query
-        if hasattr(obj, 'num_cats'):
-            return obj.num_cats
+        if hasattr(obj, 'cat_count'):
+            return obj.cat_count
         return obj.cats.count()
