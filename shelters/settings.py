@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'accounts',
+    'users',
     'cats',
     'colonies',
 ]
@@ -91,7 +91,7 @@ DATABASES = {
 
 # Custom user model: Users sign in with their email
 
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = 'users.User'
 
 
 # Password validation

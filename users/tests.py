@@ -41,6 +41,19 @@ class UserManagerTests(TestCase):
         with self.assertRaises(IntegrityError):
             User.objects.create_user(email='ALICE@example.com', password='other-pass')
 
+    def test_plain_save_lowercases_email(self):
+        user = User(email='Bob@Example.COM')
+        user.save()
+
+        user.refresh_from_db()
+        self.assertEqual(user.email, 'bob@example.com')
+
+    def test_database_rejects_email_differing_only_in_case(self):
+        User.objects.create_user(email='bob@example.com', password='s3cret-pass')
+
+        with self.assertRaises(IntegrityError):
+            User.objects.bulk_create([User(email='BOB@example.com')])
+
 
 class CreateSuperuserCommandTests(TestCase):
     def test_creates_superuser_from_email_without_username(self):
@@ -121,13 +134,13 @@ class UserAdminTests(TestCase):
         self.client.force_login(self.admin)
 
     def test_changelist_lists_users_by_email(self):
-        response = self.client.get(reverse('admin:accounts_user_changelist'))
+        response = self.client.get(reverse('admin:users_user_changelist'))
 
         self.assertContains(response, 'admin@example.com')
 
     def test_change_page_renders(self):
         response = self.client.get(
-            reverse('admin:accounts_user_change', args=[self.admin.pk])
+            reverse('admin:users_user_change', args=[self.admin.pk])
         )
 
         self.assertContains(response, 'admin@example.com')
@@ -135,7 +148,7 @@ class UserAdminTests(TestCase):
 
     def test_add_user_with_email_and_password(self):
         response = self.client.post(
-            reverse('admin:accounts_user_add'),
+            reverse('admin:users_user_add'),
             {
                 'email': 'Carol@Example.com',
                 'usable_password': 'true',
@@ -150,7 +163,7 @@ class UserAdminTests(TestCase):
 
     def test_add_user_rejects_email_differing_only_in_case(self):
         response = self.client.post(
-            reverse('admin:accounts_user_add'),
+            reverse('admin:users_user_add'),
             {
                 'email': 'ADMIN@example.com',
                 'usable_password': 'true',

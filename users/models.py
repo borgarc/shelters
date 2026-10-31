@@ -1,6 +1,7 @@
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
+from django.db.models.functions import Lower
 from django.utils import timezone
 
 
@@ -9,6 +10,7 @@ class UserManager(BaseUserManager):
 
     @classmethod
     def normalize_email(cls, email):
+        # Lower-cases the whole address, not just the domain as Django does
         return (email or '').strip().lower()
 
     def get_by_natural_key(self, email):
@@ -43,7 +45,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         'active',
         default=True,
         help_text='Designates whether this user should be treated as active. '
-        'Unselect this instead of deleting accounts.',
+        'Unselect this instead of deleting Users.',
     )
     date_joined = models.DateTimeField('date joined', default=timezone.now)
 
@@ -53,9 +55,20 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
+    class Meta:
+        constraints = [
+            # Backstop for writes that bypass save(), e.g. bulk_create()
+            models.UniqueConstraint(Lower('email'), name='unique_user_email_ci'),
+        ]
+
     def __str__(self):
         return self.email
 
     def clean(self):
+        # Normalise before form uniqueness validation runs
         super().clean()
-        self.email = type(self).objects.normalize_email(self.email)
+        self.email = UserManager.normalize_email(self.email)
+
+    def save(self, *args, **kwargs):
+        self.email = UserManager.normalize_email(self.email)
+        super().save(*args, **kwargs)
