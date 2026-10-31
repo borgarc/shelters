@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'users',
     'cats',
     'colonies',
 ]
@@ -86,6 +87,11 @@ DATABASES = {
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
+
+
+# Custom user model: Users sign in with their email
+
+AUTH_USER_MODEL = 'users.User'
 
 
 # Password validation
