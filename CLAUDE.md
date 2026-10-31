@@ -1,3 +1,7 @@
+## Checks
+
+Run tests, ruff and migration checks inside the web container: `docker compose exec -T web <cmd>` (the host has no `uv`). The commands are the ones in `.github/workflows/`.
+
 ## Agent skills
 
 ### Issue tracker
